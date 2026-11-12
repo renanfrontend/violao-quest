@@ -1,0 +1,41 @@
+name: Android APK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - run: npm ci
+
+      # Gera a pasta android/ a partir do app.json (ela não fica no repositório).
+      - run: npx expo prebuild --platform android --no-install
+
+      # Build de release com o JS embutido; o modelo do Expo assina com a chave de depuração,
+      # então o APK instala direto no celular (não serve para a Play Store).
+      - name: Build APK
+        working-directory: android
+        run: ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a --no-daemon
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: violao-quest-apk
+          path: android/app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
