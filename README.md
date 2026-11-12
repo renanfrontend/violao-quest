@@ -2,6 +2,8 @@
 
 Aulas de violão do iniciante ao avançado em formato de jogo: mapa de fases, vidas, combos, estrelas, XP, sequência diária e conquistas. Feito com React Native + Expo, roda em Android, iOS e web com o mesmo código.
 
+**Jogue no navegador:** https://violao-quest-xi.vercel.app
+
 ## O que tem no jogo
 
 - **6 mundos, 36 fases**, cada mundo fechando com um desafio que sorteia exercícios das aulas anteriores.
