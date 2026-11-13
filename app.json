@@ -56,6 +56,11 @@
       ]
     ],
     "scheme": "violaoquest",
-    "backgroundColor": "#0B0A1A"
+    "backgroundColor": "#0B0A1A",
+    "extra": {
+      "eas": {
+        "projectId": "5e1bf7ce-9c50-4ad8-ab0e-a29fa77e5018"
+      }
+    }
   }
 }
