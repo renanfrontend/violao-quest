@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { buzz, playSound } from '@/audio/engine';
 import { FretGrid } from '@/components/FretGrid';
@@ -14,8 +14,20 @@ const GROUPS: [ChordGroup, string][] = [
   ['Tétrades', '#A78BFA'],
 ];
 
+const GRID = { maxWidth: 720, padX: 16, gap: 12, minCard: 170, cardPad: 10, border: 2 } as const;
+
+/** Colunas que preenchem a largura útil (no mínimo 2) e a largura do diagrama dentro de cada card. */
+function gridLayout(windowWidth: number) {
+  const content = Math.min(windowWidth, GRID.maxWidth) - GRID.padX * 2;
+  const cols = Math.max(2, Math.floor((content + GRID.gap) / (GRID.minCard + GRID.gap)));
+  const card = Math.floor((content - GRID.gap * (cols - 1)) / cols);
+  return { card, diagram: card - (GRID.cardPad + GRID.border) * 2 };
+}
+
 export default function Chords() {
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const { card, diagram } = gridLayout(width);
   const [group, setGroup] = useState<ChordGroup>('Abertos');
   const color = GROUPS.find(([g]) => g === group)![1];
 
@@ -39,7 +51,18 @@ export default function Chords() {
           ))}
         </ScrollView>
       </View>
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 32, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', maxWidth: 720, alignSelf: 'center' }}>
+      <ScrollView
+        contentContainerStyle={{
+          width: '100%',
+          maxWidth: GRID.maxWidth,
+          alignSelf: 'center',
+          paddingHorizontal: GRID.padX,
+          paddingBottom: 32,
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          gap: GRID.gap,
+        }}
+      >
         {CHORD_LIST.filter((ch) => ch.group === group).map((ch) => (
           <Pressable
             key={ch.name}
@@ -50,19 +73,21 @@ export default function Chords() {
               playSound({ chord: ch.name });
             }}
             style={({ pressed }) => ({
-              margin: 6,
-              padding: 10,
+              width: card,
+              padding: GRID.cardPad,
               alignItems: 'center',
               backgroundColor: pressed ? C.cardHi : C.card,
               borderRadius: R.lg,
-              borderWidth: 2,
-              borderBottomWidth: pressed ? 2 : 5,
+              borderWidth: GRID.border,
+              borderBottomWidth: pressed ? GRID.border : 5,
               borderColor: C.border,
             })}
           >
             <Text style={{ color, fontWeight: '900', fontSize: 20 }}>{ch.name}</Text>
-            <Text style={[F.small, { fontSize: 11, marginBottom: 2 }]}>{ch.full}</Text>
-            <FretGrid frets={ch.frets} barre={ch.barre} width={150} color={color} />
+            <Text numberOfLines={2} style={[F.small, { fontSize: 11, marginBottom: 2, textAlign: 'center' }]}>
+              {ch.full}
+            </Text>
+            <FretGrid frets={ch.frets} barre={ch.barre} width={diagram} color={color} />
           </Pressable>
         ))}
       </ScrollView>
