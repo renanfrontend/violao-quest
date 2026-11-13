@@ -8,7 +8,10 @@
     "userInterfaceStyle": "dark",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.renanfrontend.violaoquest"
+      "bundleIdentifier": "com.renanfrontend.violaoquest",
+      "config": {
+        "usesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -27,7 +30,22 @@
     },
     "plugins": [
       "expo-router",
-      "expo-audio"
+      [
+        "expo-audio",
+        {
+          "microphonePermission": false,
+          "recordAudioAndroid": false,
+          "enableBackgroundPlayback": false
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/android-icon-monochrome.png",
+          "color": "#FFB627",
+          "enableRemoteNotifications": false
+        }
+      ]
     ],
     "scheme": "violaoquest",
     "backgroundColor": "#0B0A1A"

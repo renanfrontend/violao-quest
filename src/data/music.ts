@@ -1,3 +1,5 @@
+import type { Access } from './access';
+
 // Índice 0 = 6ª corda (Mi grave) ... índice 5 = 1ª corda (Mi agudo).
 export const OPEN_MIDI = [40, 45, 50, 55, 59, 64];
 export const STRING_NAMES = ['Mi', 'Lá', 'Ré', 'Sol', 'Si', 'Mi'];
@@ -5,6 +7,15 @@ export const NOTE_NAMES = ['Dó', 'Dó#', 'Ré', 'Ré#', 'Mi', 'Fá', 'Fá#', 'S
 export const NOTE_LETTERS = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
 export type ChordGroup = 'Abertos' | 'Sétimas' | 'Pestanas' | 'Power chords' | 'Tétrades';
+
+/** No plano grátis, o dicionário traz só os acordes abertos. */
+export const CHORD_GROUP_ACCESS: Record<ChordGroup, Access> = {
+  Abertos: 'free',
+  Sétimas: 'premium',
+  Pestanas: 'premium',
+  'Power chords': 'premium',
+  Tétrades: 'premium',
+};
 export type Chord = {
   name: string;
   full: string;

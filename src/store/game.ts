@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
-const dayKey = (d = new Date()) =>
+export const dayKey = (d = new Date()) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 type GameState = {
@@ -14,8 +14,17 @@ type GameState = {
   lessonsPlayed: number;
   sound: boolean;
   haptics: boolean;
+  /** Lembrete diário da sequência ligado (com permissão de notificação concedida). */
+  reminders: boolean;
+  /** O app já pediu a permissão de notificação uma vez. */
+  remindersAsked: boolean;
+  /** A oferta do Premium depois da primeira aula já apareceu. */
+  premiumOfferSeen: boolean;
   completeLevel: (id: string, stars: number, xp: number, combo: number) => void;
   toggle: (key: 'sound' | 'haptics') => void;
+  setReminders: (on: boolean) => void;
+  markRemindersAsked: () => void;
+  markPremiumOfferSeen: () => void;
   reset: () => void;
 };
 
@@ -28,6 +37,9 @@ const initial = {
   lessonsPlayed: 0,
   sound: true,
   haptics: true,
+  reminders: false,
+  remindersAsked: false,
+  premiumOfferSeen: false,
 };
 
 export const useGame = create<GameState>()(
@@ -49,6 +61,9 @@ export const useGame = create<GameState>()(
           };
         }),
       toggle: (key) => set((s) => ({ [key]: !s[key] }) as Partial<GameState>),
+      setReminders: (on) => set({ reminders: on }),
+      markRemindersAsked: () => set({ remindersAsked: true }),
+      markPremiumOfferSeen: () => set({ premiumOfferSeen: true }),
       reset: () => set({ ...initial }),
     }),
     { name: 'violao-quest-v1', storage: createJSONStorage(() => AsyncStorage) },
