@@ -3,5 +3,10 @@
   "framework": null,
   "buildCommand": "npx expo export -p web",
   "outputDirectory": "dist",
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "rewrites": [
+    { "source": "/termos", "destination": "/termos/index.html" },
+    { "source": "/privacidade", "destination": "/privacidade/index.html" },
+    { "source": "/suporte", "destination": "/suporte/index.html" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
 }
