@@ -1,4 +1,5 @@
 import type { Sound } from '@/audio/engine';
+import type { Access } from './access';
 
 /** [índice da corda (0 = 6ª), casa, é tônica?] */
 export type Dot = [number, number, boolean?];
@@ -13,7 +14,17 @@ export type Step =
   | { t: 'rhythm'; pattern: string; bpm: number; chord?: string };
 
 export type Level = { id: string; title: string; icon: string; boss?: boolean; steps: Step[] };
-export type World = { id: string; title: string; tier: 'Iniciante' | 'Intermediário' | 'Avançado'; color: string; dark: string; icon: string; levels: Level[] };
+export type World = {
+  id: string;
+  title: string;
+  tier: 'Iniciante' | 'Intermediário' | 'Avançado';
+  /** O plano grátis cobre os mundos do nível iniciante. */
+  access: Access;
+  color: string;
+  dark: string;
+  icon: string;
+  levels: Level[];
+};
 
 const teach = (title: string, body: string, visual?: Visual, sound?: Sound): Step => ({ t: 'teach', title, body, visual, sound });
 const quiz = (q: string, options: string[], a: number, visual?: Visual): Step => ({ t: 'quiz', q, options, a, visual });
@@ -30,12 +41,12 @@ const A_PENTA_DOTS: Dot[] = [[0, 5, true], [0, 8], [1, 5], [1, 7], [2, 5], [2, 7
 const A_PENTA: Sound = { notes: [45, 48, 50, 52, 55, 57, 60, 62, 64, 67, 69, 72], gap: 220 };
 
 const RAW: Omit<World, 'levels'>[] = [
-  { id: 'w1', title: 'Primeiros Passos', tier: 'Iniciante', color: '#34D399', dark: '#12946A', icon: '🌱' },
-  { id: 'w2', title: 'Primeiros Acordes', tier: 'Iniciante', color: '#22D3EE', dark: '#0E93A8', icon: '🎵' },
-  { id: 'w3', title: 'Ritmo e Levadas', tier: 'Intermediário', color: '#FFB627', dark: '#C4830B', icon: '🥁' },
-  { id: 'w4', title: 'Dominando o Braço', tier: 'Intermediário', color: '#FB923C', dark: '#C2570C', icon: '🔥' },
-  { id: 'w5', title: 'Escalas e Harmonia', tier: 'Avançado', color: '#A78BFA', dark: '#6D3FE0', icon: '🔮' },
-  { id: 'w6', title: 'Mestre das Cordas', tier: 'Avançado', color: '#FB7185', dark: '#BE3654', icon: '👑' },
+  { id: 'w1', title: 'Primeiros Passos', tier: 'Iniciante', access: 'free', color: '#34D399', dark: '#12946A', icon: '🌱' },
+  { id: 'w2', title: 'Primeiros Acordes', tier: 'Iniciante', access: 'free', color: '#22D3EE', dark: '#0E93A8', icon: '🎵' },
+  { id: 'w3', title: 'Ritmo e Levadas', tier: 'Intermediário', access: 'premium', color: '#FFB627', dark: '#C4830B', icon: '🥁' },
+  { id: 'w4', title: 'Dominando o Braço', tier: 'Intermediário', access: 'premium', color: '#FB923C', dark: '#C2570C', icon: '🔥' },
+  { id: 'w5', title: 'Escalas e Harmonia', tier: 'Avançado', access: 'premium', color: '#A78BFA', dark: '#6D3FE0', icon: '🔮' },
+  { id: 'w6', title: 'Mestre das Cordas', tier: 'Avançado', access: 'premium', color: '#FB7185', dark: '#BE3654', icon: '👑' },
 ];
 
 const LESSONS: Record<string, [string, string, Step[]][]> = {
@@ -333,6 +344,10 @@ export const WORLDS: World[] = RAW.map((w) => {
 });
 
 export const ALL_LEVELS: Level[] = WORLDS.flatMap((w) => w.levels);
+
+const FREE_LEVELS = WORLDS.filter((w) => w.access === 'free').flatMap((w) => w.levels);
+/** Última fase do plano grátis: ao vencê-la, o app apresenta o Premium. */
+export const LAST_FREE_LEVEL_ID: string | undefined = FREE_LEVELS[FREE_LEVELS.length - 1]?.id;
 
 export function findLevel(id: string): { level: Level; world: World } | undefined {
   for (const world of WORLDS) {

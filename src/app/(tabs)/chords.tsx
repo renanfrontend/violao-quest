@@ -1,9 +1,13 @@
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { buzz, playSound } from '@/audio/engine';
+import { canAccess } from '@/billing/access';
 import { FretGrid } from '@/components/FretGrid';
-import { CHORD_LIST, type ChordGroup } from '@/data/music';
+import { Btn, Card } from '@/components/ui';
+import { CHORD_GROUP_ACCESS, CHORD_LIST, type ChordGroup } from '@/data/music';
+import { usePremium } from '@/store/premium';
 import { C, F, R } from '@/theme';
 
 const GROUPS: [ChordGroup, string][] = [
@@ -28,8 +32,11 @@ export default function Chords() {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const { card, diagram } = gridLayout(width);
+  const router = useRouter();
+  const premium = usePremium((s) => s.premium);
   const [group, setGroup] = useState<ChordGroup>('Abertos');
   const color = GROUPS.find(([g]) => g === group)![1];
+  const isOpen = (g: ChordGroup) => canAccess(CHORD_GROUP_ACCESS[g], premium);
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg, paddingTop: insets.top + 12 }}>
@@ -43,54 +50,67 @@ export default function Chords() {
             <Pressable
               key={g}
               accessibilityRole="button"
+              accessibilityLabel={isOpen(g) ? g : `${g}, Premium`}
+              accessibilityState={{ selected: g === group }}
               onPress={() => setGroup(g)}
               style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: R.pill, borderWidth: 2, borderColor: g === group ? col : C.border, backgroundColor: g === group ? col : C.card }}
             >
-              <Text style={{ fontWeight: '900', color: g === group ? '#14101F' : C.muted }}>{g}</Text>
+              <Text style={{ fontWeight: '900', color: g === group ? '#14101F' : C.muted }}>{isOpen(g) ? g : `🔒 ${g}`}</Text>
             </Pressable>
           ))}
         </ScrollView>
       </View>
-      <ScrollView
-        contentContainerStyle={{
-          width: '100%',
-          maxWidth: GRID.maxWidth,
-          alignSelf: 'center',
-          paddingHorizontal: GRID.padX,
-          paddingBottom: 32,
-          flexDirection: 'row',
-          flexWrap: 'wrap',
-          gap: GRID.gap,
-        }}
-      >
-        {CHORD_LIST.filter((ch) => ch.group === group).map((ch) => (
-          <Pressable
-            key={ch.name}
-            accessibilityRole="button"
-            accessibilityLabel={`Ouvir ${ch.full}`}
-            onPress={() => {
-              buzz('tap');
-              playSound({ chord: ch.name });
-            }}
-            style={({ pressed }) => ({
-              width: card,
-              padding: GRID.cardPad,
-              alignItems: 'center',
-              backgroundColor: pressed ? C.cardHi : C.card,
-              borderRadius: R.lg,
-              borderWidth: GRID.border,
-              borderBottomWidth: pressed ? GRID.border : 5,
-              borderColor: C.border,
-            })}
-          >
-            <Text style={{ color, fontWeight: '900', fontSize: 20 }}>{ch.name}</Text>
-            <Text numberOfLines={2} style={[F.small, { fontSize: 11, marginBottom: 2, textAlign: 'center' }]}>
-              {ch.full}
-            </Text>
-            <FretGrid frets={ch.frets} barre={ch.barre} width={diagram} color={color} />
-          </Pressable>
-        ))}
-      </ScrollView>
+      {!isOpen(group) ? (
+        <View style={{ paddingHorizontal: GRID.padX, width: '100%', maxWidth: 480, alignSelf: 'center' }}>
+          <Card style={{ alignItems: 'center', gap: 10, paddingVertical: 24, borderColor: C.gold }}>
+            <Text style={{ fontSize: 44 }}>🔒</Text>
+            <Text style={[F.h2, { textAlign: 'center' }]}>{group} fazem parte do Premium</Text>
+            <Text style={[F.small, { textAlign: 'center' }]}>No plano grátis, o dicionário traz os acordes abertos.</Text>
+            <Btn label="Ver planos" onPress={() => router.push('/paywall')} style={{ alignSelf: 'stretch', marginTop: 6 }} />
+          </Card>
+        </View>
+      ) : (
+        <ScrollView
+          contentContainerStyle={{
+            width: '100%',
+            maxWidth: GRID.maxWidth,
+            alignSelf: 'center',
+            paddingHorizontal: GRID.padX,
+            paddingBottom: 32,
+            flexDirection: 'row',
+            flexWrap: 'wrap',
+            gap: GRID.gap,
+          }}
+        >
+          {CHORD_LIST.filter((ch) => ch.group === group).map((ch) => (
+            <Pressable
+              key={ch.name}
+              accessibilityRole="button"
+              accessibilityLabel={`Ouvir ${ch.full}`}
+              onPress={() => {
+                buzz('tap');
+                playSound({ chord: ch.name });
+              }}
+              style={({ pressed }) => ({
+                width: card,
+                padding: GRID.cardPad,
+                alignItems: 'center',
+                backgroundColor: pressed ? C.cardHi : C.card,
+                borderRadius: R.lg,
+                borderWidth: GRID.border,
+                borderBottomWidth: pressed ? GRID.border : 5,
+                borderColor: C.border,
+              })}
+            >
+              <Text style={{ color, fontWeight: '900', fontSize: 20 }}>{ch.name}</Text>
+              <Text numberOfLines={2} style={[F.small, { fontSize: 11, marginBottom: 2, textAlign: 'center' }]}>
+                {ch.full}
+              </Text>
+              <FretGrid frets={ch.frets} barre={ch.barre} width={diagram} color={color} />
+            </Pressable>
+          ))}
+        </ScrollView>
+      )}
     </View>
   );
 }

@@ -4,14 +4,25 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { buzz } from '@/audio/engine';
+import { canAccess } from '@/billing/access';
 import { ProgressBar, Stat } from '@/components/ui';
 import { ALL_LEVELS, WORLDS, isUnlocked, type Level, type World } from '@/data/curriculum';
 import { liveStreak, playerLevel, useGame } from '@/store/game';
+import { usePremium } from '@/store/premium';
 import { C, F, R } from '@/theme';
 
 const ZIGZAG = [0, 56, 84, 56, 0, -56];
 
-function Node({ level, world, index, state, stars }: { level: Level; world: World; index: number; state: 'locked' | 'current' | 'done'; stars: number }) {
+/** premium: fase de um mundo que o plano atual não cobre; o toque abre a tela de assinatura. */
+type NodeState = 'locked' | 'current' | 'done' | 'premium';
+
+const PremiumTag = () => (
+  <Text style={{ backgroundColor: '#14101F', color: C.gold, fontWeight: '900', fontSize: 11, letterSpacing: 1, paddingHorizontal: 8, paddingVertical: 3, borderRadius: R.pill, overflow: 'hidden' }}>
+    PREMIUM
+  </Text>
+);
+
+function Node({ level, world, index, state, stars, next }: { level: Level; world: World; index: number; state: NodeState; stars: number; next: boolean }) {
   const router = useRouter();
   const pulse = useSharedValue(1);
   useEffect(() => {
@@ -20,7 +31,8 @@ function Node({ level, world, index, state, stars }: { level: Level; world: Worl
   }, [state, pulse]);
   const anim = useAnimatedStyle(() => ({ transform: [{ scale: pulse.value }] }));
 
-  const locked = state === 'locked';
+  const premium = state === 'premium';
+  const locked = state === 'locked' || premium;
   const size = level.boss ? 92 : 78;
   const face = locked ? C.locked : world.color;
   const base = locked ? C.lockedDark : world.dark;
@@ -32,14 +44,20 @@ function Node({ level, world, index, state, stars }: { level: Level; world: Worl
           <Text style={{ color: world.dark, fontWeight: '900', fontSize: 12, letterSpacing: 1 }}>COMEÇAR</Text>
         </View>
       )}
+      {premium && next && (
+        <View style={{ marginBottom: 6 }}>
+          <PremiumTag />
+        </View>
+      )}
       <Animated.View style={anim}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`${level.title}${locked ? ', bloqueada' : ''}`}
-          disabled={locked}
+          accessibilityLabel={`${level.title}${premium ? ', exige Premium' : locked ? ', bloqueada' : ''}`}
+          disabled={state === 'locked'}
           onPress={() => {
             buzz('tap');
-            router.push({ pathname: '/lesson/[id]', params: { id: level.id } });
+            if (premium) router.push('/paywall');
+            else router.push({ pathname: '/lesson/[id]', params: { id: level.id } });
           }}
           style={({ pressed }) => ({ width: size, height: size + 8, paddingTop: pressed ? 6 : 0 })}
         >
@@ -52,8 +70,8 @@ function Node({ level, world, index, state, stars }: { level: Level; world: Worl
               backgroundColor: face,
               alignItems: 'center',
               justifyContent: 'center',
-              borderWidth: level.boss ? 4 : 0,
-              borderColor: locked ? C.border : C.gold,
+              borderWidth: level.boss ? 4 : premium ? 3 : 0,
+              borderColor: premium ? C.gold : locked ? C.border : C.gold,
             }}
           >
             <Text style={{ fontSize: level.boss ? 40 : 32, opacity: locked ? 0.35 : 1 }}>{locked ? '🔒' : level.icon}</Text>
@@ -63,7 +81,12 @@ function Node({ level, world, index, state, stars }: { level: Level; world: Worl
       <Text numberOfLines={2} style={{ color: locked ? C.muted : C.text, fontWeight: '800', fontSize: 13, marginTop: 6, maxWidth: 150, textAlign: 'center' }}>
         {level.title}
       </Text>
-      {state === 'done' && <Text style={{ fontSize: 13, letterSpacing: 2 }}>{'⭐'.repeat(stars)}<Text style={{ opacity: 0.25 }}>{'⭐'.repeat(3 - stars)}</Text></Text>}
+      {stars > 0 && (
+        <Text style={{ fontSize: 13, letterSpacing: 2 }}>
+          {'⭐'.repeat(stars)}
+          <Text style={{ opacity: 0.25 }}>{'⭐'.repeat(3 - stars)}</Text>
+        </Text>
+      )}
     </View>
   );
 }
@@ -71,6 +94,7 @@ function Node({ level, world, index, state, stars }: { level: Level; world: Worl
 export default function Journey() {
   const insets = useSafeAreaInsets();
   const { xp, stars, streak, lastDay } = useGame();
+  const premium = usePremium((s) => s.premium);
   const lv = playerLevel(xp);
   const totalStars = Object.values(stars).reduce((a, b) => a + b, 0);
   const currentId = ALL_LEVELS.find((l) => !stars[l.id])?.id;
@@ -97,12 +121,16 @@ export default function Journey() {
       <ScrollView contentContainerStyle={{ paddingBottom: 40, maxWidth: 560, width: '100%', alignSelf: 'center' }}>
         {WORLDS.map((world, wi) => {
           const done = world.levels.filter((l) => stars[l.id]).length;
+          const open = canAccess(world.access, premium);
           return (
             <View key={world.id}>
               <View style={{ margin: 16, marginBottom: 8, backgroundColor: world.color, borderRadius: R.lg, padding: 16, borderBottomWidth: 6, borderColor: world.dark }}>
-                <Text style={{ color: 'rgba(0,0,0,0.6)', fontWeight: '900', fontSize: 12, letterSpacing: 1.2 }}>
-                  MUNDO {wi + 1}  ·  {world.tier.toUpperCase()}
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                  <Text style={{ color: 'rgba(0,0,0,0.6)', fontWeight: '900', fontSize: 12, letterSpacing: 1.2 }}>
+                    MUNDO {wi + 1}  ·  {world.tier.toUpperCase()}
+                  </Text>
+                  {!open && <PremiumTag />}
+                </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Text style={{ color: '#14101F', fontWeight: '900', fontSize: 22, flex: 1 }}>{world.title}</Text>
                   <Text style={{ fontSize: 34 }}>{world.icon}</Text>
@@ -112,8 +140,14 @@ export default function Journey() {
                 </Text>
               </View>
               {world.levels.map((level, i) => {
-                const state = stars[level.id] ? 'done' : level.id === currentId && isUnlocked(level.id, stars) ? 'current' : 'locked';
-                return <Node key={level.id} level={level} world={world} index={i} state={state} stars={stars[level.id] ?? 0} />;
+                const state: NodeState = !open
+                  ? 'premium'
+                  : stars[level.id]
+                    ? 'done'
+                    : level.id === currentId && isUnlocked(level.id, stars)
+                      ? 'current'
+                      : 'locked';
+                return <Node key={level.id} level={level} world={world} index={i} state={state} stars={stars[level.id] ?? 0} next={level.id === currentId} />;
               })}
             </View>
           );

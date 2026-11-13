@@ -1,13 +1,17 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import Animated, { FadeIn, FadeInDown, SlideInDown, ZoomIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { buzz, playSfx, stopScheduled } from '@/audio/engine';
+import { canAccess, shouldOfferPremium } from '@/billing/access';
 import { BuildStep, EarStep, FindStep, QuizStep, RhythmStep, TeachStep } from '@/components/Steps';
 import { Btn, ProgressBar } from '@/components/ui';
 import { findLevel, stepsFor, type Step } from '@/data/curriculum';
+import { afterLessonCompleted } from '@/reminders/sync';
 import { liveStreak, useGame } from '@/store/game';
+import { useHydrated } from '@/store/hydration';
+import { usePremium } from '@/store/premium';
 import { C, F, R } from '@/theme';
 
 const MAX_HEARTS = 3;
@@ -21,6 +25,9 @@ export default function Lesson() {
   const insets = useSafeAreaInsets();
   const found = findLevel(String(id));
   const completeLevel = useGame((s) => s.completeLevel);
+  const markPremiumOfferSeen = useGame((s) => s.markPremiumOfferSeen);
+  const premium = usePremium((s) => s.premium);
+  const premiumReady = useHydrated(usePremium);
 
   const [attempt, setAttempt] = useState(0);
   const initial = useMemo(() => (found ? stepsFor(found.level, found.world) : []), [found?.level.id, attempt]);
@@ -30,7 +37,7 @@ export default function Lesson() {
   const [combo, setCombo] = useState(0);
   const [bestCombo, setBestCombo] = useState(0);
   const [result, setResult] = useState<Result>(null);
-  const [finished, setFinished] = useState<null | { stars: number; xp: number }>(null);
+  const [finished, setFinished] = useState<null | { stars: number; xp: number; offerPremium: boolean }>(null);
 
   useEffect(() => {
     setQueue(initial);
@@ -55,6 +62,9 @@ export default function Lesson() {
   }
 
   const { level, world } = found;
+  // Fase de mundo premium aberta sem assinatura (ex.: link direto): vai para a tela de assinatura.
+  if (!canAccess(world.access, premium)) return premiumReady ? <Redirect href="/paywall" /> : null;
+
   const step = queue[index];
   const failed = hearts <= 0;
 
@@ -83,13 +93,23 @@ export default function Lesson() {
     if (index + 1 >= queue.length) {
       const stars = hearts;
       const xp = (level.boss ? 30 : 15) + stars * 5 + Math.min(bestCombo, 10);
+      const before = useGame.getState();
+      const offerPremium = shouldOfferPremium({ levelId: level.id, lessonsBefore: before.lessonsPlayed, offerSeen: before.premiumOfferSeen, premium });
       completeLevel(level.id, stars, xp, bestCombo);
-      setFinished({ stars, xp });
+      void afterLessonCompleted();
+      setFinished({ stars, xp, offerPremium });
       playSfx('win');
       buzz('win');
     } else {
       setIndex(index + 1);
     }
+  };
+
+  // Depois da primeira aula e ao vencer a última fase grátis, o "Continuar" apresenta o Premium.
+  const leaveAfterWin = () => {
+    if (!finished?.offerPremium) return exit();
+    markPremiumOfferSeen();
+    router.replace('/paywall');
   };
 
   if (finished || failed) {
@@ -102,7 +122,7 @@ export default function Lesson() {
         title={level.title}
         color={world.color}
         dark={world.dark}
-        onExit={exit}
+        onExit={finished ? leaveAfterWin : exit}
         onRetry={() => setAttempt((a) => a + 1)}
       />
     );

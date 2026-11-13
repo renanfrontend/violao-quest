@@ -1,10 +1,17 @@
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, Switch, Text, View } from 'react-native';
+import { Linking, ScrollView, Switch, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { MONETIZATION_ENABLED } from '@/billing/config';
 import { Btn, Card, ProgressBar } from '@/components/ui';
 import { ALL_LEVELS, WORLDS } from '@/data/curriculum';
+import { remindersSupported } from '@/reminders/scheduler';
+import { setRemindersEnabled } from '@/reminders/sync';
 import { XP_PER_LEVEL, liveStreak, playerLevel, useGame } from '@/store/game';
+import { usePremium } from '@/store/premium';
 import { C, F, R } from '@/theme';
+
+const formatDate = (iso: string) => new Date(iso).toLocaleDateString('pt-BR');
 
 type Snapshot = { xp: number; stars: Record<string, number>; streak: number; bestCombo: number; lessonsPlayed: number };
 
@@ -25,7 +32,17 @@ const ACHIEVEMENTS: { icon: string; title: string; desc: string; test: (s: Snaps
 export default function Profile() {
   const insets = useSafeAreaInsets();
   const g = useGame();
+  const router = useRouter();
+  const plan = usePremium();
+  const manageUrl = plan.manageUrl;
   const [confirmReset, setConfirmReset] = useState(false);
+  const [reminderHint, setReminderHint] = useState<string | null>(null);
+
+  const toggleReminders = async (on: boolean) => {
+    setReminderHint(null);
+    const ok = await setRemindersEnabled(on);
+    if (!ok) setReminderHint('Libere as notificações do Violão Quest nas configurações do aparelho.');
+  };
   const lv = playerLevel(g.xp);
   const snap: Snapshot = { ...g, streak: liveStreak(g.streak, g.lastDay) };
   const done = Object.keys(g.stars).length;
@@ -86,6 +103,31 @@ export default function Profile() {
         })}
       </View>
 
+      {MONETIZATION_ENABLED && (
+        <>
+          <Text style={F.h2}>Assinatura</Text>
+          <Card style={{ gap: 10, borderColor: plan.premium ? C.gold : C.border }}>
+            {plan.premium ? (
+              <>
+                <Text style={{ color: C.gold, fontWeight: '900', fontSize: 17 }}>👑 Premium ativo</Text>
+                {plan.expiresAt && (
+                  <Text style={F.small}>
+                    {plan.trial ? 'Teste grátis até' : 'Período atual até'} {formatDate(plan.expiresAt)}
+                  </Text>
+                )}
+                {manageUrl && <Btn small label="Gerenciar assinatura" color={C.cardHi} dark={C.border} textColor={C.text} onPress={() => Linking.openURL(manageUrl)} />}
+              </>
+            ) : (
+              <>
+                <Text style={{ color: C.text, fontWeight: '900', fontSize: 17 }}>Plano grátis</Text>
+                <Text style={F.small}>Mundos 1 e 2, afinador, metrônomo e os acordes abertos.</Text>
+                <Btn small label="Conheça o Premium" onPress={() => router.push('/paywall')} />
+              </>
+            )}
+          </Card>
+        </>
+      )}
+
       <Text style={F.h2}>Ajustes</Text>
       <Card style={{ gap: 14 }}>
         {(
@@ -99,6 +141,15 @@ export default function Profile() {
             <Switch accessibilityLabel={label} value={g[key]} onValueChange={() => g.toggle(key)} trackColor={{ true: C.green, false: C.border }} thumbColor={C.text} />
           </View>
         ))}
+        {remindersSupported && (
+          <View style={{ gap: 4 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Text style={[F.body, { fontWeight: '700' }]}>⏰ Lembrete diário</Text>
+              <Switch accessibilityLabel="Lembrete diário" value={g.reminders} onValueChange={toggleReminders} trackColor={{ true: C.green, false: C.border }} thumbColor={C.text} />
+            </View>
+            <Text style={F.small}>{reminderHint ?? 'Às 19h, nos dias em que você ainda não tocou.'}</Text>
+          </View>
+        )}
         <Btn
           small
           label={confirmReset ? 'Toque de novo para apagar tudo' : 'Zerar progresso'}
