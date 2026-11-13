@@ -15,8 +15,12 @@ export const REVENUECAT_API_KEY: string | undefined = Platform.select({
   android: process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY,
 });
 
-/** Exigidos pela App Store em apps com assinatura (guideline 3.1.2). Publicar antes do envio às lojas. */
+/**
+ * Páginas estáticas de `public/`, servidas pela Vercel. Termos e privacidade são exigidos pela
+ * App Store em apps com assinatura (guideline 3.1.2); o suporte vai nos metadados das lojas.
+ */
 export const LEGAL_URLS = {
   terms: 'https://violao-quest-xi.vercel.app/termos',
   privacy: 'https://violao-quest-xi.vercel.app/privacidade',
+  support: 'https://violao-quest-xi.vercel.app/suporte',
 } as const;

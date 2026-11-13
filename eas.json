@@ -6,15 +6,18 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
+      "environment": "development",
       "env": { "EXPO_PUBLIC_MONETIZATION": "on" }
     },
     "preview": {
       "distribution": "internal",
       "android": { "buildType": "apk" },
+      "environment": "preview",
       "env": { "EXPO_PUBLIC_MONETIZATION": "on" }
     },
     "production": {
       "autoIncrement": true,
+      "environment": "production",
       "env": { "EXPO_PUBLIC_MONETIZATION": "on" }
     }
   },

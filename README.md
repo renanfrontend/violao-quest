@@ -87,7 +87,7 @@ npm run gen:audio
 2. **RevenueCat.** Crie o projeto com os apps iOS (`com.renanfrontend.violaoquest`) e Android, o entitlement `premium` e a oferta atual com os pacotes Mensal e Anual.
 3. **Chaves.** Defina `EXPO_PUBLIC_REVENUECAT_IOS_KEY` e `EXPO_PUBLIC_REVENUECAT_ANDROID_KEY` nas variáveis de ambiente do EAS (ou em `.env.local`, a partir do `.env.example`).
 4. **Build de desenvolvimento.** `npx eas-cli@latest build --profile development --platform android` e, com o app instalado, `npx expo start --dev-client`.
-5. **Antes de enviar às lojas.** Publique os Termos de Uso e a Política de Privacidade nas URLs de `src/billing/config.ts`; a tela de assinatura já aponta para elas.
+5. **Páginas legais.** Termos de Uso, Política de Privacidade e Suporte são HTML estático em `public/` e ficam em `/termos`, `/privacidade` e `/suporte` no site. As URLs estão em `src/billing/config.ts`; a tela de assinatura e o Perfil apontam para elas.
 
 Perfis do `eas.json`: `development` (build de desenvolvimento), `preview` (APK para testadores) e `production` (envio às lojas, com número de versão automático).
 
@@ -105,6 +105,9 @@ src/
   data/                currículo, dicionário de acordes e o que é grátis ou premium
   audio/               motor de som e mapa dos samples
   store/               progresso do jogador e estado da assinatura
+public/                Termos de Uso, Política de Privacidade e Suporte (HTML estático)
+design/icone/          SVGs de origem do ícone, do splash e do ícone de notificação
+store/                 imagens para as fichas da Play Store e da App Store
 scripts/gen-audio.mjs  sintetizador dos sons
 ```
 
