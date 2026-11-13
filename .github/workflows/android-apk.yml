@@ -2,6 +2,11 @@ name: Android APK
 
 on:
   workflow_dispatch:
+    inputs:
+      monetization:
+        description: Ligar o plano grátis/Premium neste APK (para testar a assinatura)
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -32,6 +37,8 @@ jobs:
       # então o APK instala direto no celular (não serve para a Play Store).
       - name: Build APK
         working-directory: android
+        env:
+          EXPO_PUBLIC_MONETIZATION: ${{ inputs.monetization && 'on' || 'off' }}
         run: ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a --no-daemon
 
       - uses: actions/upload-artifact@v4
