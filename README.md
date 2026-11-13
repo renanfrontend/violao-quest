@@ -85,7 +85,7 @@ npm run gen:audio
 
 1. **Lojas.** Crie as assinaturas mensal e anual num mesmo grupo. Na App Store, adicione uma oferta introdutória de teste grátis de 1 semana; no Google Play, uma oferta de teste grátis de 7 dias no plano base.
 2. **RevenueCat.** Crie o projeto com os apps iOS (`com.renanfrontend.violaoquest`) e Android, o entitlement `premium` e a oferta atual com os pacotes Mensal e Anual.
-3. **Chaves.** Defina `EXPO_PUBLIC_REVENUECAT_IOS_KEY` e `EXPO_PUBLIC_REVENUECAT_ANDROID_KEY` nas variáveis de ambiente do EAS (ou em `.env.local`, a partir do `.env.example`).
+3. **Chaves.** As chaves públicas do SDK do RevenueCat vão nos perfis do `eas.json`: a do Android (`EXPO_PUBLIC_REVENUECAT_ANDROID_KEY`) já está lá; a do iOS (`EXPO_PUBLIC_REVENUECAT_IOS_KEY`) entra quando o app da App Store for criado. Para rodar localmente, use `.env.local` a partir do `.env.example`. A chave secreta do RevenueCat (`sk_…`) nunca vai para o app nem para o repositório.
 4. **Build de desenvolvimento.** `npx eas-cli@latest build --profile development --platform android` e, com o app instalado, `npx expo start --dev-client`.
 5. **Páginas legais.** Termos de Uso, Política de Privacidade e Suporte são HTML estático em `public/` e ficam em `/termos`, `/privacidade` e `/suporte` no site. As URLs estão em `src/billing/config.ts`; a tela de assinatura e o Perfil apontam para elas.
 
