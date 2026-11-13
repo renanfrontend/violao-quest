@@ -1,8 +1,8 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Linking, ScrollView, Switch, Text, View } from 'react-native';
+import { Linking, Pressable, ScrollView, Switch, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { MONETIZATION_ENABLED } from '@/billing/config';
+import { LEGAL_URLS, MONETIZATION_ENABLED } from '@/billing/config';
 import { Btn, Card, ProgressBar } from '@/components/ui';
 import { ALL_LEVELS, WORLDS } from '@/data/curriculum';
 import { remindersSupported } from '@/reminders/scheduler';
@@ -163,6 +163,39 @@ export default function Profile() {
           }}
         />
       </Card>
+
+      <Text style={F.h2}>Ajuda e privacidade</Text>
+      <Card style={{ paddingVertical: 4 }}>
+        {HELP_LINKS.map(({ label, url }, i) => (
+          <Pressable
+            key={url}
+            accessibilityRole="link"
+            accessibilityLabel={label}
+            onPress={() => Linking.openURL(url)}
+            style={({ pressed }) => ({
+              minHeight: 48,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              borderTopWidth: i === 0 ? 0 : 1,
+              borderColor: C.border,
+              opacity: pressed ? 0.6 : 1,
+            })}
+          >
+            <Text style={[F.body, { fontWeight: '700' }]}>{label}</Text>
+            <Text aria-hidden style={{ color: C.muted, fontSize: 20, fontWeight: '700' }}>
+              ›
+            </Text>
+          </Pressable>
+        ))}
+      </Card>
     </ScrollView>
   );
 }
+
+/** Termos e privacidade precisam estar acessíveis dentro do app (App Store 3.1.2 e 5.1.1). */
+const HELP_LINKS = [
+  { label: 'Suporte', url: LEGAL_URLS.support },
+  { label: 'Termos de Uso', url: LEGAL_URLS.terms },
+  { label: 'Política de Privacidade', url: LEGAL_URLS.privacy },
+] as const;
